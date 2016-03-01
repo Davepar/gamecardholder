@@ -8,9 +8,9 @@ card_width = 69; // Use 69 for Rivals of Catan, 54 for Settlers
 card_height = 69; // Use 69 for Rivals of Catan, 80 for Settlers
 card_space = 2;
 
-// Parameters for walls that hold the cards
+// Parameters for walls that hold the cards, in mm
 wall_thickness = 3;
-wall_height = 12;
+wall_height = 6;
 wall_length = 12;
 
 // Parameters for the base plate
@@ -27,8 +27,8 @@ conn_height_large = 20;
 // The female connector is made 1mm taller, but you may need to adjust this value
 // slightly if the parts don't fit together.
 module Connector(male) {
-  height_small = conn_height_small + (male ? 0 : 1);
-  height_large = conn_height_large + (male ? 0 : 1);
+  height_small = conn_height_small + (male ? 0 : 0.5);
+  height_large = conn_height_large + (male ? 0 : 0.5);
   linear_extrude(height=plate_depth + 0.02, center=true, convexity=10, twist=0) {
     translate([0, 0, -plate_depth / 2 - 0.01])
       polygon([[0, height_small / 2],
