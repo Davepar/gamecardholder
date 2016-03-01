@@ -1,103 +1,98 @@
-// Rivals of Catan game card holder
+/* Settlers or Rivals of Catan game card holder
+ *
+ * Wherever 0.01 appears below, it's a small adjustment amount to make sure pieces overlap.
+ */
 
-//Constants
-card_x = 54; // Use 69 for Rivals of Catan, 54 for Settlers
-card_y = 80; // Use 69 for Rivals of Catan, 80 for Settlers
+// Card size measured in mm
+card_width = 69; // Use 69 for Rivals of Catan, 54 for Settlers
+card_height = 69; // Use 69 for Rivals of Catan, 80 for Settlers
 card_space = 2;
+
+// Parameters for walls that hold the cards
 wall_thickness = 3;
-plate_height = 3;
 wall_height = 12;
 wall_length = 12;
-wall_offset = wall_thickness - wall_length;
 
-// Connecting piece
-// the "female" part is 21mm at the biggest point and 12.5mm at the smallest and 10mm deep
-// the "male" part is  19.8mm at the biggest point and 10.46mm at smallest and 11.4mm long
-// the odd numbers are because I used a manualy freehand modifed box with no real grid snapping,
-// and some random scaling
-female_con_x = 10;
-female_con_y1 = 21;
-female_con_y2 = 12.5;
-male_con_x = 11.4;
-male_con_y1 = 19.8;
-male_con_y2 = 10.46;
+// Parameters for the base plate
+plate_depth = 3;
+plate_width = card_width + card_space + wall_thickness * 2;
+plate_height = card_height + card_space + wall_thickness * 2;
 
-// Same angle works for both male and female connector
-angle = atan(((female_con_y1 - female_con_y2) / 2) / female_con_x);
+// Connecting piece parameters.
+conn_width = 10;
+conn_height_small = 11.5;
+conn_height_large = 20;
+
+// Object that represents the puzzle piece connector
+// The female connector is made 1mm taller, but you may need to adjust this value
+// slightly if the parts don't fit together.
+module Connector(male) {
+  height_small = conn_height_small + (male ? 0 : 1);
+  height_large = conn_height_large + (male ? 0 : 1);
+  linear_extrude(height=plate_depth + 0.02, center=true, convexity=10, twist=0) {
+    translate([0, 0, -plate_depth / 2 - 0.01])
+      polygon([[0, height_small / 2],
+               [-conn_width, height_large / 2],
+               [-conn_width, -height_large / 2],
+               [0, -height_small / 2]]);
+  }
+}
 
 union() {
-
   difference() {
     // Base plate
-    cube(size = [card_x+card_space+wall_thickness*2, card_y+card_space+wall_thickness*2,plate_height], center = true);
+    cube([plate_width, plate_height, plate_depth], center = true);
 
     // Round cuts to make grabbing cards easier
     for (dir = [1, -1]) {
-        translate([0, dir * (card_y / 2 + 23), 0])
+      translate([0, dir * (card_height / 2 + 23), 0])
         cylinder(h=10, r=27, center=true, $fa=2);
     }
 
-    //Logo
+    // Logo
     union() {
       translate([0, -4.5, 0])
-      cube(size = [19,9,10], center = true);
+        cube(size = [19, 9, 10], center = true);
       difference() {
         translate([-4.5, 0.5 ,0])
-        cube(size = [10,19,10], center = true);
+          cube(size = [10, 19, 10], center = true);
         translate([0.5, 12 ,0])
-        rotate([0, 0, 45])
-        cube(size = [10,12,11], center = true);
-        translate([-9.5, 12 ,0])
-        rotate([0, 0, 45])
-        cube(size = [12,10,11], center = true);
+          rotate([0, 0, 45])
+          cube(size = [10, 12, 11], center = true);
+        translate([-9.5, 12, 0])
+          rotate([0, 0, 45])
+          cube(size = [12, 10, 11], center = true);
       }
     }
 
-    //female con
-    translate( [ (card_x/2) - female_con_x + card_space/2 + wall_thickness +0.01 , -female_con_y1/2, -plate_height ] ) //0.01 is for overlapping
-    difference() {
-      cube(size = [female_con_x, female_con_y1, plate_height*2], center = false);
-      translate( [ 0,female_con_y1,-1 ] )
-      rotate([0, 0, -angle])
-      cube(female_con_x*2);
-      translate( [ 0,0,-1 ] )
-      rotate([0, 0, angle-90])
-      cube(female_con_x*2);
-    }
-
+    // Female connector
+    translate([plate_width / 2 + 0.01, 0, 0])
+      Connector(false);
   }
 
-  //male con
-  translate( [ -(card_x/2) - card_space/2 - wall_thickness - male_con_x, -male_con_y1/2, -plate_height/2 ] )
-  difference() {
-    cube(size = [male_con_x, male_con_y1, plate_height], center = false);
-    translate( [ 0,male_con_y1,-1 ] )
-    rotate([0, 0, -angle])
-    cube(male_con_x*2);
-    translate( [ 0,0,-1 ] )
-    rotate([0, 0, angle-90])
-    cube(male_con_x*2);
-  }
+  // Male connector
+  translate([-plate_width / 2 + 0.01, 0, 0])
+    Connector(true);
 
   //Cards for reference
-  //%cube(size = [card_x,card_y,9], center = true);
-  //%cube(size = [card_y,card_x,9], center = true);
+  card_depth = 9;
+  translate([0, 0, (plate_depth + card_depth) / 2])
+    %cube(size = [card_width, card_height, card_depth], center=true);
 
   // Four pairs of corner walls
-  for (x = [0:1]) {
-    for (y = [0:1]) {
-      mirror([x, 0, 0]) {
-        mirror([0, y, 0]) {
-          translate([(card_x + card_space) / 2,
-                     (card_y + card_space) / 2 + wall_offset,
-                     plate_height / 2])
+  wall_offset = wall_thickness - wall_length;
+  for (x = [0:1], y = [0:1]) {
+    mirror([x, 0, 0]) {
+      mirror([0, y, 0]) {
+        translate([(card_width + card_space) / 2,
+                   (card_height + card_space) / 2 + wall_offset,
+                   plate_depth / 2 - 0.01])
           cube([wall_thickness, wall_length, wall_height], center=false);
 
-          translate([(card_x + card_space ) / 2 + wall_offset,
-                     (card_y + card_space) / 2,
-                     plate_height / 2])
+        translate([(card_width + card_space ) / 2 + wall_offset,
+                   (card_height + card_space) / 2,
+                   plate_depth / 2 - 0.01])
           cube([wall_length, wall_thickness, wall_height], center=false);
-        }
       }
     }
   }
